@@ -3,6 +3,7 @@
 
 #include "../engine/GameObject.h"
 #include "../engine/ShaderManager.h"
+#include "common.hpp"
 #include "geometric.hpp"
 #include "ofAppRunner.h"
 #include "ofConstants.h"
@@ -46,6 +47,9 @@ struct Camera {
     glm::vec3 viewportUnitY;
     glm::vec3 viewportTopLeft;
 
+    float minTheta = (PI / 2.0f) - 0.95f * (PI / 4.0f);
+    float maxTheta = (PI / 2.0f) + 0.95f * (PI / 4.0f);
+
     void recompute() {
         glm::vec3 offset = glm::vec3(glm::sin(theta) * glm::cos(phi), glm::cos(theta), glm::sin(theta) * glm::sin(phi));
         position = target + distance * offset;
@@ -62,6 +66,9 @@ struct Camera {
         viewportTopLeft = viewportCenter - viewportUnitX * (ofGetWidth() / 2.0f) - viewportUnitY * (ofGetHeight() / 2.0f);
         viewportTopLeft += (viewportUnitX / 2.0f) + (viewportUnitY / 2.0f);
     }
+
+    void incrementTheta(float dtheta) { theta = glm::clamp(theta + dtheta * panSensitivity, minTheta, maxTheta); }
+    void incrementPhi(float dphi) { phi = glm::mod(phi + dphi * panSensitivity, 2 * PI); }
 };
 
 class BlackHoleScene : public GameObject {
@@ -93,8 +100,8 @@ public:
         if (button == OF_MOUSE_BUTTON_LEFT) {
             float dx = ofGetMouseX() - ofGetPreviousMouseX();
             float dy = ofGetMouseY() - ofGetPreviousMouseY();
-            mCamera.phi -= dx * mCamera.panSensitivity;
-            mCamera.theta -= dy * mCamera.panSensitivity;
+            mCamera.incrementTheta(-dy);
+            mCamera.incrementPhi(dx);
             mCamera.recompute();
         }
     }
