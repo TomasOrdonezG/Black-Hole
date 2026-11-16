@@ -34,25 +34,23 @@ uniform sampler3D u_noise;
 
 const float EXPOSURE = 1.0;
 
-const float ABSORPTION_COEFF = 0.4;
-const float SCATTERING_COEFF = 0.1;
+const float ABSORPTION_COEFF = 0.5;
+const float SCATTERING_COEFF = 0.2;
 const float EXTINCTION_COEFF = ABSORPTION_COEFF + SCATTERING_COEFF;
 
 const float ACCRETION_DISC_THICKNESS = 20.0;
-const float ACCRETION_DISC_EDGE_GRADIENT_THICKNESS = 5.0;
-const float ACCRETION_DISC_HEIGHT = 1.0;
+const float ACCRETION_DISC_EDGE_GRADIENT_THICKNESS = 7.5;
+const float ACCRETION_DISC_HEIGHT = 0.6;
 const vec3 ACCRETION_DISC_NORMAL = vec3(0.15, 1.0, 0.0);
 const float ACCRETION_DISC_CLOUD_VERTICAL_THRESHOLD_FALLOFF_FACTOR = 0.15;
 const float ACCRETION_DISC_CLOUD_MIN_LOWER_TRESHOLD = 0.3;
 const float ACCRETION_DISC_CLOUD_MIN_UPPER_TRESHOLD = 0.6;
-const float ACCRETION_DISC_ROTATION_SPEED = 45.0;
+const float ACCRETION_DISC_ROTATION_SPEED = 10.0;
 const float ACCRETION_DISC_ROTATION_PERIOD = 100.0;
 const float ACCRETION_DISC_MAX_TEMPERATURE = 5000.0;
 
-const int CLOUD_RAYMARCH_STEPS = 100;
-const int CLOUD_RAYMARCH_STEPS_TO_LIGHT = 10;
-const vec3 CLOUD_ALBEDO = vec3(1.0);
-const float CLOUD_SCALE = 0.2;
+const float ACCRETION_DISC_NOISE_SCALE = 0.15;
+const int RAYMARCH_STEPS = 100;
 
 const float LEVEL_OF_DETAIL = 1.0;
 
@@ -90,7 +88,7 @@ float noisePhase(vec3 planePos, float r, float z, float t, float lod) {
     vec3 rotPlanePos = planePos * cosTheta + cross(ACCRETION_DISC_NORMAL, planePos) * sinTheta;
 
     // Scale and domain warp the projected position
-    vec3 samplePos = CLOUD_SCALE * (rotPlanePos + z * ACCRETION_DISC_NORMAL);
+    vec3 samplePos = ACCRETION_DISC_NOISE_SCALE * (rotPlanePos + z * ACCRETION_DISC_NORMAL);
     samplePos += 0.6 * (vec3(
         textureLod(u_noise, samplePos * 0.5, lod).r,
         textureLod(u_noise, samplePos * 0.5 + 0.37, lod).r,
@@ -136,8 +134,6 @@ float sampleAccretionDiscDensity(vec3 pos, float lod) {
     float cloud = sampleCloudDensity(pos, r, z, zn, lod);
     return innerEdgeFade * outerEdgeFade * radial * verticalDensity * cloud;
 }
-
-// ----- Cloud Ray Marching ---
 
 vec2 rayAccretionDistBoundingSphere(vec3 rayOrigin, vec3 rayDir) {
     float r_in = 3.0 * u_black_hole_r_s;
@@ -189,7 +185,7 @@ vec3 accretionDiscColour(vec3 pos, vec3 unitDir) {
     float r_in = 3.0 * u_black_hole_r_s;
     if (r < r_in) return vec3(0.0);
 
-    // Other physics stuff that helps
+    // Shift factor
     float orbitalSpeed2 = u_black_hole_r_s / (2.0 * (r - u_black_hole_r_s));
     float num = sqrt((1.0 - u_black_hole_r_s / r) * (1.0 - orbitalSpeed2));
     vec3 unitVel = normalize(cross(ACCRETION_DISC_NORMAL, pos));
@@ -222,12 +218,12 @@ vec3 castRayCloud(vec3 rayOrigin, vec3 rayDir) {
 
     // Compute step size
     float dist = t2 - t1;
-    float stepSize  = dist / float(CLOUD_RAYMARCH_STEPS);
+    float stepSize  = dist / float(RAYMARCH_STEPS);
 
     // Step through cloud
     float transmittance = 1.0;
     vec3 light = vec3(0.0);
-    for (int i = 0; i < CLOUD_RAYMARCH_STEPS; i++) {
+    for (int i = 0; i < RAYMARCH_STEPS; i++) {
         float rayLength = t1 + i * stepSize;
         vec3 pos = rayOrigin + rayLength * unitRayDir;
         float density = sampleAccretionDiscDensity(pos, LEVEL_OF_DETAIL);
