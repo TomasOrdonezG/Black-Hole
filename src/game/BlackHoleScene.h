@@ -117,23 +117,24 @@ private:
     ofMesh mQuad;
     GLuint mNoiseTex = 0;
 
-    void loadNoiseTexture(int size = 64, float freq = 4.0f) {
-        std::vector<float> data(size * size * size);
+    void loadNoiseTexture(int size = 128, float freq = 4.0f) {
+        std::vector<uint8_t> data(size * size * size);
 
-        for (int z = 0; z < size; z++) {
-            for (int y = 0; y < size; y++) {
+        for (int z = 0; z < size; z++)
+            for (int y = 0; y < size; y++)
                 for (int x = 0; x < size; x++) {
                     glm::vec3 p = glm::vec3(x, y, z) / float(size) * freq;
-                    data[(z * size + y) * size + x] = glm::perlin(p, glm::vec3(freq));
+                    float n = glm::perlin(p, glm::vec3(freq));
+                    n = glm::clamp(n * 0.5f + 0.5f, 0.0f, 1.0f);
+                    data[(z * size + y) * size + x] = uint8_t(n * 255.0f + 0.5f);
                 }
-            }
-        }
 
         glGenTextures(1, &mNoiseTex);
         glBindTexture(GL_TEXTURE_3D, mNoiseTex);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, size, size, size, 0, GL_RED, GL_FLOAT, data.data());
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, size, size, size, 0, GL_RED, GL_UNSIGNED_BYTE, data.data());
+        glGenerateMipmap(GL_TEXTURE_3D);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
