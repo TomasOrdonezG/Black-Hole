@@ -38,19 +38,18 @@ const float ABSORPTION_COEFF = 0.5;
 const float SCATTERING_COEFF = 0.2;
 const float EXTINCTION_COEFF = ABSORPTION_COEFF + SCATTERING_COEFF;
 
-const float ACCRETION_DISC_THICKNESS = 20.0;
+const float ACCRETION_DISC_THICKNESS = 30.0;
 const float ACCRETION_DISC_EDGE_GRADIENT_THICKNESS = 7.5;
 const float ACCRETION_DISC_HEIGHT = 0.6;
-const vec3 ACCRETION_DISC_NORMAL = vec3(0.15, 1.0, 0.0);
+const vec3 ACCRETION_DISC_NORMAL = vec3(0.05, 1.0, 0.0);
 const float ACCRETION_DISC_CLOUD_VERTICAL_THRESHOLD_FALLOFF_FACTOR = 0.15;
 const float ACCRETION_DISC_CLOUD_MIN_LOWER_TRESHOLD = 0.3;
-const float ACCRETION_DISC_CLOUD_MIN_UPPER_TRESHOLD = 0.6;
+const float ACCRETION_DISC_CLOUD_MIN_UPPER_TRESHOLD = 0.75;
 const float ACCRETION_DISC_ROTATION_SPEED = 10.0;
 const float ACCRETION_DISC_ROTATION_PERIOD = 100.0;
-const float ACCRETION_DISC_MAX_TEMPERATURE = 5000.0;
+const float ACCRETION_DISC_MAX_TEMPERATURE = 3500.0;
 
 const float ACCRETION_DISC_NOISE_SCALE = 0.15;
-const int RAYMARCH_STEPS = 100;
 
 const float LEVEL_OF_DETAIL = 1.0;
 
@@ -135,7 +134,7 @@ float sampleAccretionDiscDensity(vec3 pos, float lod) {
     return innerEdgeFade * outerEdgeFade * radial * verticalDensity * cloud;
 }
 
-vec2 rayAccretionDistBoundingSphere(vec3 rayOrigin, vec3 rayDir) {
+vec2 rayAccretionDiscBoundingSphere(vec3 rayOrigin, vec3 rayDir) {
     float r_in = 3.0 * u_black_hole_r_s;
     float r = r_in + ACCRETION_DISC_THICKNESS;
 
@@ -205,37 +204,44 @@ vec3 accretionDiscColour(vec3 pos, vec3 unitDir) {
     return col;
 }
 
-vec3 castRayCloud(vec3 rayOrigin, vec3 rayDir) {
-    vec3 unitRayDir = normalize(rayDir);
-    vec3 bgColour = getBackgroundColour(rayOrigin + u_max_ray_rad * unitRayDir);
-    bgColour = vec3(0.0);
+vec3 castRayCloud(vec3 rayOrigin, vec3 unitRayDir) {
+    rayOrigin -= u_black_hole_pos;
+    vec3 bgColour = vec3(0.0);
 
-    // Check intersection with cloud bounding sphere
-    vec2 intersection = rayAccretionDistBoundingSphere(rayOrigin, unitRayDir);
-    float t1 = max(0.0, intersection.x);
-    float t2 = intersection.y;
-    if (t2 <= t1) return bgColour;
+    // Constants for ray marching
+    float h = length(cross(rayOrigin, unitRayDir));
+    float K = 1.5 * u_black_hole_r_s * h * h;
+    float cK = (K > 0.0) ? u_light_speed / K : MAX_FLOAT;
 
-    // Compute step size
-    float dist = t2 - t1;
-    float stepSize  = dist / float(RAYMARCH_STEPS);
-
-    // Step through cloud
     float transmittance = 1.0;
     vec3 light = vec3(0.0);
-    for (int i = 0; i < RAYMARCH_STEPS; i++) {
-        float rayLength = t1 + i * stepSize;
-        vec3 pos = rayOrigin + rayLength * unitRayDir;
-        float density = sampleAccretionDiscDensity(pos, LEVEL_OF_DETAIL);
-        if (density < 0.001) continue;
+    vec3 rayDir = u_light_speed * unitRayDir;
+
+    for (int it = 0; it < u_max_ray_iters; it++) {
+        float r2 = dot(rayOrigin, rayOrigin);
+        float r = sqrt(r2);
+
+        if (r <= u_black_hole_r_s || (r > u_max_ray_rad && dot(rayOrigin, rayDir) > 0.0)) break;
+
+        float stepSize = clamp(u_dt_eps * min(r / length(rayDir), cK * r2 * r2), u_dt_min, u_dt_max);
 
         // Update light energy and transmittance
-        vec3 lightTransmittance = accretionDiscColour(pos, unitRayDir);
-        float stepTransmittance = exp(-density * EXTINCTION_COEFF * stepSize);
-        light += transmittance * (1.0 - stepTransmittance) * lightTransmittance;
-        transmittance *= stepTransmittance;
+        float density = sampleAccretionDiscDensity(rayOrigin, LEVEL_OF_DETAIL);
+        if (density >= 0.001) {
+            unitRayDir = normalize(rayDir);
+            vec3 lightTransmittance = accretionDiscColour(rayOrigin, unitRayDir);
+            float actualStepDist = stepSize * length(rayDir);
+            float stepTransmittance = exp(-density * EXTINCTION_COEFF * actualStepDist);
+            light += transmittance * (1.0 - stepTransmittance) * lightTransmittance;
+            transmittance *= stepTransmittance;
+        }
 
         if (transmittance < 0.01) break;
+
+        // Update ray
+        vec3 rayAcc = (-K / (r2 * r2 * r)) * rayOrigin;
+        rayDir += stepSize * rayAcc;
+        rayOrigin += stepSize * rayDir;
     }
 
     return bgColour * transmittance + light;
@@ -290,10 +296,10 @@ void main() {
     windowPixel.y = int(u_resolution.y - windowPixel.y);
     vec3 pixel = u_viewport_top_left + u_viewport_unit_x * windowPixel.x + u_viewport_unit_y * windowPixel.y;
     vec3 rayPos = u_camera_pos;
-    vec3 rayDir = u_light_speed * normalize(pixel - rayPos);
+    vec3 unitRayDir = normalize(pixel - rayPos);
 
     // Cast ray to compute colour
-    vec3 hdrColour = castRayCloud(rayPos, rayDir);
+    vec3 hdrColour = castRayCloud(rayPos, unitRayDir);
 
     // Apply exposure, tone map, and gamma correction to final colour
     hdrColour *= EXPOSURE;
