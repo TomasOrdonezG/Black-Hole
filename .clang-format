@@ -6,6 +6,7 @@ UseTab: Never
 ColumnLimit: 150
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
 AccessModifierOffset: -4
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: ControlStatements
