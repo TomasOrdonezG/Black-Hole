@@ -116,6 +116,10 @@ private:
         s.setUniform1i(name, v);
     }
 
+    static void set(ofShader &s, const std::string &name, bool v) {
+        s.setUniform1i(name, v);
+    }
+
     std::vector<std::function<void(ofShader &)>> entries;
 };
 
@@ -204,6 +208,7 @@ struct AccretionDisc : Group {
 };
 
 struct RayMarching : Group {
+    ofParameter<bool> rk4{"RK4", false};
     ofParameter<int> maxSteps{"Max Steps", 5000, 10, 50000};
     ofParameter<float> maxDist{"Max Distance", 200.0f, 10.0f, 1000.0f};
     ofParameter<float> stepSizeFactor{"Step Size Factor", 0.01f, 0.0001f, 0.5f};
@@ -211,8 +216,9 @@ struct RayMarching : Group {
     ofParameter<float> maxStepSize{"Max Step Size", 5.0f, 1.0f, 20.0f};
 
     RayMarching() {
-        bindParameters("Ray Marching", maxSteps, maxDist, stepSizeFactor, minStepSize, maxStepSize);
+        bindParameters("Ray Marching", rk4, maxSteps, maxDist, stepSizeFactor, minStepSize, maxStepSize);
 
+        uniforms.add("u_rk4", rk4);
         uniforms.add("u_ray_marching_max_steps", maxSteps);
         uniforms.add("u_ray_marching_max_dist", maxDist);
         uniforms.add("u_ray_marching_step_size_factor", stepSizeFactor);

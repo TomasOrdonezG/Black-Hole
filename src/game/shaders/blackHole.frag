@@ -33,6 +33,7 @@ uniform float u_accretion_disc_cloud_size;
 uniform vec3 u_accretion_disc_normal;
 
 // Ray Marching
+uniform bool u_rk4;
 uniform int u_ray_marching_max_steps;
 uniform float u_ray_marching_max_dist;
 uniform float u_ray_marching_step_size_factor;
@@ -209,18 +210,41 @@ vec3 accretionDiscColour(vec3 pos, vec3 unitDir) {
 
 // ----- Ray Marching -----
 
+vec3 rayAcceleration(vec3 rayOrigin, float h2) {
+    float r2 = dot(rayOrigin, rayOrigin);
+    return -1.5 * u_black_hole_r_s * h2 * rayOrigin / (r2 * r2 * sqrt(r2));
+}
+
+void rk4(inout vec3 rayOrigin, inout vec3 rayDir, float h2, float stepSize) {
+    vec3 k1p = rayDir;
+    vec3 k1v = rayAcceleration(rayOrigin, h2);
+
+    vec3 k2p = rayDir + 0.5 * stepSize * k1v;
+    vec3 k2v = rayAcceleration(rayOrigin + 0.5 * stepSize * k1p, h2);
+
+    vec3 k3p = rayDir + 0.5 * stepSize * k2v;
+    vec3 k3v = rayAcceleration(rayOrigin + 0.5 * stepSize * k2p, h2);
+
+    vec3 k4p = rayDir + stepSize * k3v;
+    vec3 k4v = rayAcceleration(rayOrigin + stepSize * k3p, h2);
+
+    rayOrigin += (stepSize / 6.0) * (k1p + 2.0 * k2p + 2.0 * k3p + k4p);
+    rayDir += (stepSize / 6.0) * (k1v + 2.0 * k2v + 2.0 * k3v + k4v);
+}
+
 vec3 castRay(vec3 rayOrigin, vec3 unitRayDir) {
     rayOrigin -= u_black_hole_pos;
     vec3 bgColour = vec3(0.0);
+    vec3 rayDir = u_light_speed * unitRayDir;
 
     // Constants for ray marching
-    float h = length(cross(rayOrigin, unitRayDir));
-    float K = 1.5 * u_black_hole_r_s * h * h;
+    vec3 p = cross(rayOrigin, rayDir);
+    float h2 = dot(p, p);
+    float K = 1.5 * u_black_hole_r_s * h2;
     float cK = (K > 0.0) ? u_light_speed / K : MAX_FLOAT;
 
     float transmittance = 1.0;
     vec3 light = vec3(0.0);
-    vec3 rayDir = u_light_speed * unitRayDir;
 
     for (int it = 0; it < u_ray_marching_max_steps; it++) {
         float r2 = dot(rayOrigin, rayOrigin);
@@ -243,10 +267,16 @@ vec3 castRay(vec3 rayOrigin, vec3 unitRayDir) {
 
         if (transmittance < 0.01) break;
 
+        const bool RK4 = true;
+
         // Update ray
-        vec3 rayAcc = (-K / (r2 * r2 * r)) * rayOrigin;
-        rayDir += stepSize * rayAcc;
-        rayOrigin += stepSize * rayDir;
+        if (u_rk4) {
+            rk4(rayOrigin, rayDir, h2, stepSize);
+        } else {
+            vec3 rayAcc = (-K / (r2 * r2 * r)) * rayOrigin;
+            rayDir += stepSize * rayAcc;
+            rayOrigin += stepSize * rayDir;
+        }
     }
 
     return bgColour * transmittance + light;
