@@ -231,13 +231,15 @@ struct RayMarching : Group {
 
 struct Rendering : Group {
     ofParameter<float> exposure{"Exposure", 1.0f, 0.1f, 3.0f};
-    ofParameter<float> levelOfDetail{"Level of Detail", 3.0f, 1.0f, 5.0f};
+    ofParameter<float> levelOfDetail{"Level of Detail", 1.0f, 1.0f, 5.0f};
+    ofParameter<int> antiAliasSamples{"Anti Alias Samples", 1, 1, 5};
 
     Rendering() {
-        bindParameters("Rendering", exposure, levelOfDetail);
+        bindParameters("Rendering", exposure, levelOfDetail, antiAliasSamples);
 
         uniforms.add("u_exposure", exposure);
         uniforms.add("u_level_of_detail", levelOfDetail);
+        uniforms.add("u_anti_alias_samples", antiAliasSamples);
     }
 };
 

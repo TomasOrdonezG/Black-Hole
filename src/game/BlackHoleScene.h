@@ -65,7 +65,7 @@ private:
         mQuad.addVertex({1, 1, 0});
     }
 
-    void setupNoiseTexture(int size = 128, float freq = 4.0f) {
+    void setupNoiseTexture(int size = 32, float freq = 4.0f) {
         std::vector<uint8_t> data(size * size * size);
 
         for (int z = 0; z < size; z++) {

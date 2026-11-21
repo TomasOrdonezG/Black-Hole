@@ -42,6 +42,7 @@ uniform float u_ray_marching_min_step_size;
 uniform float u_ray_marching_max_step_size;
 
 // Rendering
+uniform int u_anti_alias_samples;
 uniform float u_exposure;
 uniform float u_level_of_detail;
 
@@ -296,16 +297,33 @@ vec3 castRay(vec3 rayOrigin, vec3 unitRayDir) {
     return bgColour * transmittance + light;
 }
 
+vec3 antiAlias(vec3 pixelCenter, int samples) {
+    vec3 pixelTopRight = pixelCenter - 0.5 * (u_viewport_unit_x + u_viewport_unit_y);
+    vec3 deltaX = u_viewport_unit_x / (float(samples) + 1.0);
+    vec3 deltaY = u_viewport_unit_y / (float(samples) + 1.0);
+
+    vec3 accumulatedColour = vec3(0.0);
+    vec3 rayOrigin = u_camera_pos;
+    for (int x = 1; x <= samples; x++) {
+        for (int y = 1; y <= samples; y++) {
+            vec3 viewportSamplePoint = pixelTopRight + x * deltaX + y * deltaY;
+            vec3 unitRayDir = normalize(viewportSamplePoint - rayOrigin);
+            accumulatedColour += castRay(rayOrigin, unitRayDir);
+        }
+    }
+
+    return accumulatedColour / float(samples * samples);
+}
+
 void main() {
     // Compute ray position and direction vectors
     ivec2 windowPixel = ivec2(gl_FragCoord.xy);
     windowPixel.y = int(u_resolution.y - windowPixel.y);
-    vec3 pixel = u_viewport_top_left + u_viewport_unit_x * windowPixel.x + u_viewport_unit_y * windowPixel.y;
-    vec3 rayPos = u_camera_pos;
-    vec3 unitRayDir = normalize(pixel - rayPos);
 
     // Cast ray to compute colour
-    vec3 hdrColour = castRay(rayPos, unitRayDir);
+    vec3 pixelCenter = u_viewport_top_left + u_viewport_unit_x * windowPixel.x + u_viewport_unit_y * windowPixel.y;
+    vec3 hdrColour = antiAlias(pixelCenter, u_anti_alias_samples);
+    // vec3 hdrColour = castRay(rayOrigin, unitRayDir);
 
     // Apply exposure, tone map, and gamma correction to final colour
     hdrColour *= u_exposure;
