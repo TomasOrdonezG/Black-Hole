@@ -20,7 +20,7 @@ uniform float u_black_hole_r_s;
 
 // Accretion Disc
 uniform float u_accretion_disc_thickness;
-uniform float u_accretion_disc_edge_falloff_thickness;
+uniform float u_accretion_dist_edge_thickness_falloff_percent;
 uniform float u_accretion_disc_height;
 uniform float u_accretion_disc_vertical_threshold_falloff_factor;
 uniform float u_accretion_disc_cloud_min_lower_threshold;
@@ -172,8 +172,9 @@ float sampleAccretionDiscDensity(vec3 pos, float lod) {
     float verticalDensity = exp(- zn * zn / 2.0);
     if (verticalDensity < 0.01) return 0.0;
 
-    float innerEdgeFade = smoothstep(r_in, r_in + u_accretion_disc_edge_falloff_thickness, r);
-    float outerEdgeFade = 1.0 - smoothstep(r_out - u_accretion_disc_edge_falloff_thickness, r_out, r);
+    float falloffThickness = u_accretion_disc_thickness * u_accretion_dist_edge_thickness_falloff_percent;
+    float innerEdgeFade = smoothstep(r_in, r_in + falloffThickness, r);
+    float outerEdgeFade = 1.0 - smoothstep(r_out - falloffThickness, r_out, r);
     float radial = pow(r / r_in, -1.5);
 
     float cloud = sampleCloudDensity(pos, r, z, zn, lod);

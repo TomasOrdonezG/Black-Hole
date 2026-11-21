@@ -171,17 +171,17 @@ private:
 };
 
 struct AccretionDisc : Group {
-    ofParameter<float> thickness{"Thickness", 100.0f, 5.0f, 300.0f};
-    ofParameter<float> edgeFalloffThickness{"Edge Falloff Thickness", 15.0f, 0.0f, 50.0f};
-    ofParameter<float> height{"Height", 0.6f, 0.1f, 5.0f};
-    ofParameter<float> verticalThresholdFalloffFactor{"Vertical Falloff", 0.15f, 0.01f, 1.0f};
+    ofParameter<float> thickness{"Thickness", 500.0f, 5.0f, 1000.0f};
+    ofParameter<float> edgeFalloffThicknessPercent{"Edge Falloff Thickness Percent", 0.03f, 0.0f, 0.5f};
+    ofParameter<float> height{"Height", 0.4f, 0.1f, 5.0f};
+    ofParameter<float> verticalThresholdFalloffFactor{"Vertical Falloff", 0.01f, 0.0f, 1.0f};
     ofParameter<float> cloudMinLowerThreshold{"Cloud Min Lower Threshold", 0.3f, 0.01f, 1.0f};
-    ofParameter<float> cloudMinUpperThreshold{"Cloud Min Upper Threshold", 0.75f, cloudMinLowerThreshold, 1.0f};
-    ofParameter<float> rotationSpeed{"Rotation Speed", 100.0f, 0.0f, 1000.0f};
-    ofParameter<float> rotationPeriod{"Rotation Period", 500.0f, 1.0f, 5000.0f};
-    ofParameter<float> maxTemperature{"Max Temperature", 4500.0f, 1000.0f, 40000.0f};
+    ofParameter<float> cloudMinUpperThreshold{"Cloud Min Upper Threshold", 0.65f, cloudMinLowerThreshold, 1.0f};
+    ofParameter<float> rotationSpeed{"Rotation Speed", 1000.0f, 0.0f, 2000.0f};
+    ofParameter<float> rotationPeriod{"Rotation Period", 5000.0f, 1.0f, 10000.0f};
+    ofParameter<float> maxTemperature{"Max Temperature", 10000.0f, 1000.0f, 40000.0f};
     ofParameter<float> swirl{"Swirl", 3.0f, 0.0f, 10.0f};
-    ofParameter<float> extinctionCoeff{"Extinction Coefficient", 0.5f, 0.0f, 1.0f};
+    ofParameter<float> extinctionCoeff{"Extinction Coefficient", 1.0f, 0.0f, 1.0f};
     ofParameter<float> cloudSize{"Cloud Size", 0.15f, 0.01f, 1.0f};
 
     ofParameter<glm::vec3> normal{"Normal", glm::vec3(0.0f, 1.0f, 0.1f), glm::vec3(-10.0f), glm::vec3(10.0f)};
@@ -189,12 +189,12 @@ struct AccretionDisc : Group {
     DerivedParameter<glm::vec3> unitNormal;
 
     AccretionDisc() {
-        bindParameters("Accretion Disk", thickness, edgeFalloffThickness, height, verticalThresholdFalloffFactor, cloudMinLowerThreshold,
+        bindParameters("Accretion Disk", thickness, edgeFalloffThicknessPercent, height, verticalThresholdFalloffFactor, cloudMinLowerThreshold,
                        cloudMinUpperThreshold, rotationSpeed, rotationPeriod, maxTemperature, swirl, extinctionCoeff, cloudSize, normal);
         unitNormal.bind([](glm::vec3 normal) { return glm::normalize(normal); }, normal);
 
         uniforms.add("u_accretion_disc_thickness", thickness);
-        uniforms.add("u_accretion_disc_edge_falloff_thickness", edgeFalloffThickness);
+        uniforms.add("u_accretion_dist_edge_thickness_falloff_percent", edgeFalloffThicknessPercent);
         uniforms.add("u_accretion_disc_height", height);
         uniforms.add("u_accretion_disc_vertical_threshold_falloff_factor", verticalThresholdFalloffFactor);
         uniforms.add("u_accretion_disc_cloud_min_lower_threshold", cloudMinLowerThreshold);
@@ -211,9 +211,9 @@ struct AccretionDisc : Group {
 
 struct RayMarching : Group {
     ofParameter<bool> rk4{"RK4", false};
-    ofParameter<int> maxSteps{"Max Steps", 1500, 10, 10000};
+    ofParameter<int> maxSteps{"Max Steps", 5000, 10, 10000};
     ofParameter<float> maxDist{"Max Distance", 200.0f, 10.0f, 1000.0f};
-    ofParameter<float> stepSizeFactor{"Step Size Factor", 0.01f, 0.0001f, 0.1f};
+    ofParameter<float> stepSizeFactor{"Step Size Factor", 0.005f, 0.0001f, 0.01f};
     ofParameter<float> minStepSize{"Min Step Size", 0.001f, 0.0001f, 0.1f};
     ofParameter<float> maxStepSize{"Max Step Size", 5.0f, 1.0f, 20.0f};
 
@@ -231,7 +231,7 @@ struct RayMarching : Group {
 
 struct Rendering : Group {
     ofParameter<float> exposure{"Exposure", 1.0f, 0.1f, 3.0f};
-    ofParameter<float> levelOfDetail{"Level of Detail", 1.0f, 1.0f, 5.0f};
+    ofParameter<float> levelOfDetail{"Level of Detail", 3.0f, 1.0f, 5.0f};
 
     Rendering() {
         bindParameters("Rendering", exposure, levelOfDetail);
@@ -248,9 +248,9 @@ struct Camera : Group {
     ofParameter<float> zoomSensitivity{"Zoom Sensitivity", 5.0f, 1.0f, 10.0f};
 
     ofParameter<glm::vec3> target{"Camera Target", {0.0f, 0.0f, 0.0f}};
-    ofParameter<float> distance{"Distance", 30.0f, 0.0f, 1000.0f};
+    ofParameter<float> distance{"Distance", 150.0f, 0.0f, 1000.0f};
     ofParameter<float> phi{"Phi", 0.0f};
-    ofParameter<float> theta{"Theta", PI / 2.0f - 0.01f};
+    ofParameter<float> theta{"Theta", PI / 2.0f - 0.05f};
 
     DerivedParameter<glm::vec3> position;
     DerivedParameter<glm::vec3> forward;
@@ -287,8 +287,8 @@ struct Camera : Group {
     }
 
 private:
-    float minTheta = (PI / 2.0f) - 0.95f * (PI / 4.0f);
-    float maxTheta = (PI / 2.0f) + 0.95f * (PI / 4.0f);
+    float minTheta = (PI / 2.0f) - 0.99f * (PI / 2.0f);
+    float maxTheta = (PI / 2.0f) + 0.99f * (PI / 2.0f);
 
     static glm::vec3 computePosition(glm::vec3 target, float distance, float phi, float theta) {
         glm::vec3 offset = glm::vec3(glm::sin(theta) * glm::cos(phi), glm::cos(theta), glm::sin(theta) * glm::sin(phi));
