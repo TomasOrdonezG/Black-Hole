@@ -33,6 +33,10 @@ public:
         shader.end();
         cleanUpDrawBinds();
 
+        std::string fps = "FPS: " + ofToString(ofGetFrameRate(), 1);
+        float x = ofGetWidth() - fps.length() * 8 - 10;
+        ofDrawBitmapStringHighlight(fps, x, 20);
+
         mConfig.drawGui();
     }
 

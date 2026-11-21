@@ -30,6 +30,7 @@ uniform float u_accretion_disc_rotation_period;
 uniform float u_accretion_disc_max_temperature;
 uniform float u_accretion_dist_extinction_coeff;
 uniform float u_accretion_disc_cloud_size;
+uniform float u_accretion_disc_swirl;
 uniform vec3 u_accretion_disc_normal;
 
 // Ray Marching
@@ -99,15 +100,19 @@ vec3 acesToneMap(vec3 x) {
 
 // ----- Accretion Disc -----
 
+const mat3 ROT = mat3( 0.00,  0.80,  0.60,
+                      -0.80,  0.36, -0.48,
+                      -0.60, -0.48,  0.64);
+
 float fbm(vec3 p, float lod) {
     float sum = 0.0;
     float amp = 0.5;
     float norm = 0.0;
 
     for (int i = 0; i < 4; i++) {
-        sum += amp * textureLod(u_noise, p, lod).r;
+        sum += amp * textureLod(u_noise, p + float(i) * vec3(0.37, 0.71, 0.19), lod).r;
         norm += amp;
-        p *= 2.02 + vec3(0.13, 0.31, 0.07);
+        p = ROT * p * 2.03;
         amp *= 0.5;
     }
     return sum / norm;
@@ -119,7 +124,8 @@ float omega(float r) {
 
 float noisePhase(vec3 planePos, float r, float z, float t, float lod) {
     // Rotate according to time
-    float theta = -omega(r) * t;
+    float r_in = 3.0 * u_black_hole_r_s;
+    float theta = -omega(r) * t + u_accretion_disc_swirl * log(r / r_in);
     float cosTheta = cos(theta);
     float sinTheta = sin(theta);
     vec3 rotPlanePos = planePos * cosTheta + cross(u_accretion_disc_normal, planePos) * sinTheta;
@@ -131,7 +137,9 @@ float noisePhase(vec3 planePos, float r, float z, float t, float lod) {
         textureLod(u_noise, samplePos * 0.5 + 0.37, lod).r,
         textureLod(u_noise, samplePos * 0.5 + 0.71, lod).r
         ) - 0.5);
-    return fbm(samplePos, lod);
+    float large = textureLod(u_noise, samplePos * 0.11 + 0.5, lod).r;
+    return fbm(samplePos, lod) + 0.35 * (large - 0.5);
+    // return fbm(samplePos, lod);
 }
 
 float sampleCloudDensity(vec3 pos, float r, float z, float zn, float lod) {
@@ -174,7 +182,7 @@ float sampleAccretionDiscDensity(vec3 pos, float lod) {
 
 vec2 rayAccretionDiscBoundingSphere(vec3 rayOrigin, vec3 rayDir) {
     float r_in = 3.0 * u_black_hole_r_s;
-    float r = r_in + u_accretion_disc_thickness;
+    float r = r_in + u_accretion_disc_thickness + u_black_hole_r_s;
 
     float b = dot(rayOrigin, rayDir);
     float h = b * b - (dot(rayOrigin, rayOrigin) - r * r);
@@ -243,6 +251,11 @@ vec3 castRay(vec3 rayOrigin, vec3 unitRayDir) {
     float K = 1.5 * u_black_hole_r_s * h2;
     float cK = (K > 0.0) ? u_light_speed / K : MAX_FLOAT;
 
+    // Check accretion disc bounding sphere
+    vec2 t = rayAccretionDiscBoundingSphere(rayOrigin, unitRayDir);
+    if (t.x > t.y) return bgColour;
+    if (t.x > 0.0) rayOrigin += unitRayDir * 0.9 * t.x;
+
     float transmittance = 1.0;
     vec3 light = vec3(0.0);
 
@@ -250,7 +263,9 @@ vec3 castRay(vec3 rayOrigin, vec3 unitRayDir) {
         float r2 = dot(rayOrigin, rayOrigin);
         float r = sqrt(r2);
 
-        if (r <= u_black_hole_r_s || (r > u_ray_marching_max_dist && dot(rayOrigin, rayDir) > 0.0)) break;
+        // Check event horizon or escape
+        float r_exit = 3.0 * u_black_hole_r_s + u_accretion_disc_thickness + 1.0;
+        if (r <= u_black_hole_r_s || (r > r_exit && dot(rayOrigin, rayDir) > 0.0)) break;
 
         float stepSize = clamp(u_ray_marching_step_size_factor * min(r / length(rayDir), cK * r2 * r2), u_ray_marching_min_step_size, u_ray_marching_max_step_size);
 
@@ -266,8 +281,6 @@ vec3 castRay(vec3 rayOrigin, vec3 unitRayDir) {
         }
 
         if (transmittance < 0.01) break;
-
-        const bool RK4 = true;
 
         // Update ray
         if (u_rk4) {

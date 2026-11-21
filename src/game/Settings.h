@@ -171,25 +171,26 @@ private:
 };
 
 struct AccretionDisc : Group {
-    ofParameter<float> thickness{"Thickness", 30.0f, 5.0f, 300.0f};
-    ofParameter<float> edgeFalloffThickness{"Edge Falloff Thickness", 7.5f, 0.0f, thickness / 2.0f};
+    ofParameter<float> thickness{"Thickness", 100.0f, 5.0f, 300.0f};
+    ofParameter<float> edgeFalloffThickness{"Edge Falloff Thickness", 15.0f, 0.0f, 50.0f};
     ofParameter<float> height{"Height", 0.6f, 0.1f, 5.0f};
     ofParameter<float> verticalThresholdFalloffFactor{"Vertical Falloff", 0.15f, 0.01f, 1.0f};
     ofParameter<float> cloudMinLowerThreshold{"Cloud Min Lower Threshold", 0.3f, 0.01f, 1.0f};
     ofParameter<float> cloudMinUpperThreshold{"Cloud Min Upper Threshold", 0.75f, cloudMinLowerThreshold, 1.0f};
-    ofParameter<float> rotationSpeed{"Rotation Speed", 10.0f, 0.0f, 100.0f};
-    ofParameter<float> rotationPeriod{"Rotation Period", 100.0f, 1.0f, 500.0f};
-    ofParameter<float> maxTemperature{"Max Temperature", 3500.0f, 1000.0f, 40000.0f};
+    ofParameter<float> rotationSpeed{"Rotation Speed", 100.0f, 0.0f, 1000.0f};
+    ofParameter<float> rotationPeriod{"Rotation Period", 500.0f, 1.0f, 5000.0f};
+    ofParameter<float> maxTemperature{"Max Temperature", 4500.0f, 1000.0f, 40000.0f};
+    ofParameter<float> swirl{"Swirl", 3.0f, 0.0f, 10.0f};
     ofParameter<float> extinctionCoeff{"Extinction Coefficient", 0.5f, 0.0f, 1.0f};
     ofParameter<float> cloudSize{"Cloud Size", 0.15f, 0.01f, 1.0f};
 
-    ofParameter<glm::vec3> normal{"Normal", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-10.0f), glm::vec3(10.0f)};
+    ofParameter<glm::vec3> normal{"Normal", glm::vec3(0.0f, 1.0f, 0.1f), glm::vec3(-10.0f), glm::vec3(10.0f)};
 
     DerivedParameter<glm::vec3> unitNormal;
 
     AccretionDisc() {
         bindParameters("Accretion Disk", thickness, edgeFalloffThickness, height, verticalThresholdFalloffFactor, cloudMinLowerThreshold,
-                       cloudMinUpperThreshold, rotationSpeed, rotationPeriod, maxTemperature, extinctionCoeff, cloudSize, normal);
+                       cloudMinUpperThreshold, rotationSpeed, rotationPeriod, maxTemperature, swirl, extinctionCoeff, cloudSize, normal);
         unitNormal.bind([](glm::vec3 normal) { return glm::normalize(normal); }, normal);
 
         uniforms.add("u_accretion_disc_thickness", thickness);
@@ -203,15 +204,16 @@ struct AccretionDisc : Group {
         uniforms.add("u_accretion_disc_max_temperature", maxTemperature);
         uniforms.add("u_accretion_disc_cloud_size", cloudSize);
         uniforms.add("u_accretion_dist_extinction_coeff", extinctionCoeff);
+        uniforms.add("u_accretion_disc_swirl", swirl);
         uniforms.add("u_accretion_disc_normal", unitNormal);
     }
 };
 
 struct RayMarching : Group {
     ofParameter<bool> rk4{"RK4", false};
-    ofParameter<int> maxSteps{"Max Steps", 5000, 10, 50000};
+    ofParameter<int> maxSteps{"Max Steps", 1500, 10, 10000};
     ofParameter<float> maxDist{"Max Distance", 200.0f, 10.0f, 1000.0f};
-    ofParameter<float> stepSizeFactor{"Step Size Factor", 0.01f, 0.0001f, 0.5f};
+    ofParameter<float> stepSizeFactor{"Step Size Factor", 0.01f, 0.0001f, 0.1f};
     ofParameter<float> minStepSize{"Min Step Size", 0.001f, 0.0001f, 0.1f};
     ofParameter<float> maxStepSize{"Max Step Size", 5.0f, 1.0f, 20.0f};
 
@@ -240,15 +242,15 @@ struct Rendering : Group {
 };
 
 struct Camera : Group {
-    ofParameter<float> viewportDist{"Viewport Distance", 10.0f, 1.0f, 30.0f};
+    ofParameter<float> viewportDist{"Viewport Distance", 1.0f, 0.1f, 10.0f};
     ofParameter<float> viewportHeight{"Viewport Height", 2.0f, 0.5f, 3.0f};
     ofParameter<float> panSensitivity{"Pan Sensitivity", 0.005f, 0.001f, 0.01f};
     ofParameter<float> zoomSensitivity{"Zoom Sensitivity", 5.0f, 1.0f, 10.0f};
 
     ofParameter<glm::vec3> target{"Camera Target", {0.0f, 0.0f, 0.0f}};
-    ofParameter<float> distance{"Distance", 300.0f, 0.0f, 1000.0f};
+    ofParameter<float> distance{"Distance", 30.0f, 0.0f, 1000.0f};
     ofParameter<float> phi{"Phi", 0.0f};
-    ofParameter<float> theta{"Theta", PI / 2.0f - 0.025f};
+    ofParameter<float> theta{"Theta", PI / 2.0f - 0.01f};
 
     DerivedParameter<glm::vec3> position;
     DerivedParameter<glm::vec3> forward;
