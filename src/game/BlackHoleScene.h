@@ -1,10 +1,10 @@
 #ifndef BLACK_HOLE_SCENE_H
 #define BLACK_HOLE_SCENE_H
 
-#include "../engine/GameObject.h"
-#include "../engine/ShaderManager.h"
 #include "Parameters.h"
 #include "common.hpp"
+#include "engine/GameObject.h"
+#include "engine/ShaderManager.h"
 #include "ofAppRunner.h"
 #include "ofConstants.h"
 #include "ofEvents.h"

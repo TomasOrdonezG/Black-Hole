@@ -1,8 +1,8 @@
 #ifndef SETUP_H
 #define SETUP_H
 
-#include "../engine/GameObject.h"
 #include "BlackHoleScene.h"
+#include "engine/GameObject.h"
 #include <memory>
 
 class Setup : public Engine::GameObject {

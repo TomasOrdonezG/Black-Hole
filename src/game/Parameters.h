@@ -1,8 +1,8 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#include "../engine/parameters/DerivedParameter.h"
-#include "../engine/parameters/ParameterGroup.h"
+#include "engine/parameters/DerivedParameter.h"
+#include "engine/parameters/ParameterGroup.h"
 #include "ofParameter.h"
 #include "ofShader.h"
 #include "ofxPanel.h"
