@@ -3,7 +3,7 @@
 
 #include "../engine/GameObject.h"
 #include "../engine/ShaderManager.h"
-#include "Settings.h"
+#include "Parameters.h"
 #include "common.hpp"
 #include "ofAppRunner.h"
 #include "ofConstants.h"
@@ -22,7 +22,7 @@ public:
 
     void setup(Engine::GameContext &ctx) override {
         setupNoiseTexture();
-        mConfig.setup();
+        mSceneParams.setup();
     }
 
     void draw(Engine::GameContext &ctx) override {
@@ -37,23 +37,23 @@ public:
         float x = ofGetWidth() - fps.length() * 8 - 10;
         ofDrawBitmapStringHighlight(fps, x, 20);
 
-        mConfig.drawGui();
+        mSceneParams.drawGui();
     }
 
     void mouseDragged(Engine::GameContext &ctx, int x, int y, int button) override {
         if (button == OF_MOUSE_BUTTON_LEFT) {
             float dx = ofGetMouseX() - ofGetPreviousMouseX();
             float dy = ofGetMouseY() - ofGetPreviousMouseY();
-            mConfig.camera.incrementAngles(dx, -dy);
+            mSceneParams.camera.incrementAngles(dx, -dy);
         }
     }
 
     void mouseScrolled(Engine::GameContext &ctx, int x, int y, float scrollX, float scrollY) override {
-        mConfig.camera.incrementDistance(-scrollY);
+        mSceneParams.camera.incrementDistance(-scrollY);
     }
 
 private:
-    SceneConfiguration mConfig;
+    SceneParameters mSceneParams;
     ofMesh mQuad;
     GLuint mNoiseTex = 0;
 
@@ -103,7 +103,7 @@ private:
         shader.setUniform1i("u_noise", 0);
 
         // Scene Settings
-        mConfig.applyUniforms(shader);
+        mSceneParams.applyUniforms(shader);
     }
 
     void cleanUpDrawBinds() {

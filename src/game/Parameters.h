@@ -1,5 +1,5 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#ifndef PARAMETERS_H
+#define PARAMETERS_H
 
 #include "../engine/parameters/DerivedParameter.h"
 #include "../engine/parameters/ParameterGroup.h"
@@ -195,7 +195,7 @@ private:
     }
 };
 
-struct SceneConfiguration {
+struct SceneParameters {
     UniversalPhysics physics;
     BlackHole blackHole{physics};
     AccretionDisc accretionDisc;
@@ -203,9 +203,9 @@ struct SceneConfiguration {
     Rendering rendering;
     Camera camera;
 
-    SceneConfiguration() = default;
-    SceneConfiguration(const SceneConfiguration &) = delete;
-    SceneConfiguration &operator=(const SceneConfiguration &) = delete;
+    SceneParameters() = default;
+    SceneParameters(const SceneParameters &) = delete;
+    SceneParameters &operator=(const SceneParameters &) = delete;
 
     void setup() {
         gui.setup("Settings");
