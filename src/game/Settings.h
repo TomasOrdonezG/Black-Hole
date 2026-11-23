@@ -1,145 +1,14 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include "ofEvent.h"
+#include "../engine/parameters/DerivedParameter.h"
+#include "../engine/parameters/ParameterGroup.h"
 #include "ofParameter.h"
 #include "ofShader.h"
 #include "ofxPanel.h"
-#include <functional>
 #include <glm/glm.hpp>
-#include <vector>
 
-namespace Settings {
-
-template <typename T>
-class DerivedParameter {
-public:
-    DerivedParameter() = default;
-    DerivedParameter(const DerivedParameter &) = delete;
-    DerivedParameter &operator=(const DerivedParameter &) = delete;
-
-    ofEvent<void> invalidated;
-
-    /**
-     * @brief	Binds the derived parameter to one or more OpenFrameworks parameters.
-     * @param	fn	    Recompute function.
-     * @param	deps	All OF parameters to bind to.
-     */
-    template <typename F, typename... Deps>
-    void bind(F fn, Deps &...deps) {
-        compute = [fn = std::move(fn), &deps...]() -> T { return fn(valueOf(deps)...); };
-        listeners.unsubscribeAll();
-        (listen(deps), ...);
-        markDirty();
-    }
-
-    const T &get() {
-        if (dirty) {
-            value = compute();
-            dirty = false;
-        }
-        return value;
-    }
-
-    void invalidate() {
-        markDirty();
-    }
-
-private:
-    std::function<T()> compute;
-    ofEventListeners listeners;
-    T value{};
-    bool dirty = true;
-
-    template <typename P>
-    static const P &valueOf(ofParameter<P> &p) {
-        return p.get();
-    }
-
-    template <typename U>
-    static const U &valueOf(DerivedParameter<U> &d) {
-        return d.get();
-    }
-
-    template <typename P>
-    void listen(ofParameter<P> &p) {
-        listeners.push(p.newListener([this](P &) { markDirty(); }));
-    }
-
-    template <typename U>
-    void listen(DerivedParameter<U> &d) {
-        listeners.push(d.invalidated.newListener([this]() { markDirty(); }));
-    }
-
-    void markDirty() {
-        dirty = true;
-        invalidated.notify(this);
-    }
-};
-
-class Uniforms {
-public:
-    template <typename P>
-    void add(const std::string &name, ofParameter<P> &p) {
-        entries.push_back([name, &p](ofShader &s) { set(s, name, p.get()); });
-    }
-
-    template <typename U>
-    void add(const std::string &name, DerivedParameter<U> &d) {
-        entries.push_back([name, &d](ofShader &s) { set(s, name, d.get()); });
-    }
-
-    void apply(ofShader &s) const {
-        for (const auto &entry : entries) {
-            entry(s);
-        }
-    }
-
-private:
-    static void set(ofShader &s, const std::string &name, float v) {
-        s.setUniform1f(name, v);
-    }
-
-    static void set(ofShader &s, const std::string &name, glm::vec2 v) {
-        s.setUniform2f(name, v);
-    }
-
-    static void set(ofShader &s, const std::string &name, glm::vec3 v) {
-        s.setUniform3f(name, v);
-    }
-
-    static void set(ofShader &s, const std::string &name, glm::vec4 v) {
-        s.setUniform4f(name, v);
-    }
-
-    static void set(ofShader &s, const std::string &name, int v) {
-        s.setUniform1i(name, v);
-    }
-
-    static void set(ofShader &s, const std::string &name, bool v) {
-        s.setUniform1i(name, v);
-    }
-
-    std::vector<std::function<void(ofShader &)>> entries;
-};
-
-struct Group {
-    Group() = default;
-    Group(const Group &) = delete;
-    Group &operator=(const Group &) = delete;
-
-    ofParameterGroup params;
-    Uniforms uniforms;
-
-protected:
-    template <typename... P>
-    void bindParameters(const std::string &name, P &...ps) {
-        params.setName(name);
-        (params.add(ps), ...);
-    }
-};
-
-struct UniversalPhysics : Group {
+struct UniversalPhysics : Engine::Parameters::ParameterGroup {
     ofParameter<float> lightSpeed{"Speed of Light", 1.0f, 0.01f, 10.0f};
     ofParameter<float> gravConstant{"Gravitational Constant", 1.0f, 0.01f, 10.0f};
 
@@ -150,11 +19,11 @@ struct UniversalPhysics : Group {
     }
 };
 
-struct BlackHole : Group {
+struct BlackHole : Engine::Parameters::ParameterGroup {
     ofParameter<glm::vec3> position{"Position", glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f)};
     ofParameter<float> mass{"Mass", 1.0f, 0.01f, 100.0f};
 
-    Settings::DerivedParameter<float> rs;
+    Engine::Parameters::DerivedParameter<float> rs;
 
     explicit BlackHole(UniversalPhysics &physicsSettings) {
         bindParameters("Black Hole", position, mass);
@@ -170,7 +39,7 @@ private:
     }
 };
 
-struct AccretionDisc : Group {
+struct AccretionDisc : Engine::Parameters::ParameterGroup {
     ofParameter<float> thickness{"Thickness", 500.0f, 5.0f, 1000.0f};
     ofParameter<float> edgeFalloffThicknessPercent{"Edge Falloff Thickness Percent", 0.03f, 0.0f, 0.5f};
     ofParameter<float> height{"Height", 0.4f, 0.1f, 5.0f};
@@ -186,7 +55,7 @@ struct AccretionDisc : Group {
 
     ofParameter<glm::vec3> normal{"Normal", glm::vec3(0.0f, 1.0f, 0.1f), glm::vec3(-10.0f), glm::vec3(10.0f)};
 
-    DerivedParameter<glm::vec3> unitNormal;
+    Engine::Parameters::DerivedParameter<glm::vec3> unitNormal;
 
     AccretionDisc() {
         bindParameters("Accretion Disk", thickness, edgeFalloffThicknessPercent, height, verticalThresholdFalloffFactor, cloudMinLowerThreshold,
@@ -209,7 +78,7 @@ struct AccretionDisc : Group {
     }
 };
 
-struct RayMarching : Group {
+struct RayMarching : Engine::Parameters::ParameterGroup {
     ofParameter<bool> rk4{"RK4", false};
     ofParameter<int> maxSteps{"Max Steps", 5000, 10, 10000};
     ofParameter<float> maxDist{"Max Distance", 200.0f, 10.0f, 1000.0f};
@@ -229,7 +98,7 @@ struct RayMarching : Group {
     }
 };
 
-struct Rendering : Group {
+struct Rendering : Engine::Parameters::ParameterGroup {
     ofParameter<float> exposure{"Exposure", 1.0f, 0.1f, 3.0f};
     ofParameter<float> levelOfDetail{"Level of Detail", 1.0f, 1.0f, 5.0f};
     ofParameter<int> antiAliasSamples{"Anti Alias Samples", 1, 1, 5};
@@ -243,7 +112,7 @@ struct Rendering : Group {
     }
 };
 
-struct Camera : Group {
+struct Camera : Engine::Parameters::ParameterGroup {
     ofParameter<float> viewportDist{"Viewport Distance", 1.0f, 0.1f, 10.0f};
     ofParameter<float> viewportHeight{"Viewport Height", 2.0f, 0.5f, 3.0f};
     ofParameter<float> panSensitivity{"Pan Sensitivity", 0.005f, 0.001f, 0.01f};
@@ -254,13 +123,13 @@ struct Camera : Group {
     ofParameter<float> phi{"Phi", 0.0f};
     ofParameter<float> theta{"Theta", PI / 2.0f - 0.05f};
 
-    DerivedParameter<glm::vec3> position;
-    DerivedParameter<glm::vec3> forward;
-    DerivedParameter<glm::vec3> down;
-    DerivedParameter<glm::vec3> right;
-    DerivedParameter<glm::vec3> viewportUnitX;
-    DerivedParameter<glm::vec3> viewportUnitY;
-    DerivedParameter<glm::vec3> viewportTopLeft;
+    Engine::Parameters::DerivedParameter<glm::vec3> position;
+    Engine::Parameters::DerivedParameter<glm::vec3> forward;
+    Engine::Parameters::DerivedParameter<glm::vec3> down;
+    Engine::Parameters::DerivedParameter<glm::vec3> right;
+    Engine::Parameters::DerivedParameter<glm::vec3> viewportUnitX;
+    Engine::Parameters::DerivedParameter<glm::vec3> viewportUnitY;
+    Engine::Parameters::DerivedParameter<glm::vec3> viewportTopLeft;
 
     explicit Camera() {
         bindParameters("Camera", viewportDist, viewportHeight, panSensitivity, zoomSensitivity);
@@ -326,15 +195,13 @@ private:
     }
 };
 
-} // namespace Settings
-
 struct SceneConfiguration {
-    Settings::UniversalPhysics physics;
-    Settings::BlackHole blackHole{physics};
-    Settings::AccretionDisc accretionDisc;
-    Settings::RayMarching rayMarching;
-    Settings::Rendering rendering;
-    Settings::Camera camera;
+    UniversalPhysics physics;
+    BlackHole blackHole{physics};
+    AccretionDisc accretionDisc;
+    RayMarching rayMarching;
+    Rendering rendering;
+    Camera camera;
 
     SceneConfiguration() = default;
     SceneConfiguration(const SceneConfiguration &) = delete;
