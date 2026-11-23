@@ -11,18 +11,25 @@
 #include <memory>
 #include <vector>
 
+namespace Engine {
+
 class GameEngine : public EngineContext {
 public:
-    GameEngine() : mContext(*this, mCanvas) {}
+    GameEngine() : mContext(*this, mCanvas) {
+    }
     GameEngine(const GameEngine &) = delete;
     GameEngine &operator=(const GameEngine &) = delete;
     GameEngine(GameEngine &&) = delete;
     GameEngine &operator=(GameEngine &&) = delete;
     ~GameEngine() = default;
 
-    void addObject(std::shared_ptr<GameObject> obj) override { mObjectBuffer.push_back(obj); }
+    void addObject(std::shared_ptr<GameObject> obj) override {
+        mObjectBuffer.push_back(obj);
+    }
 
-    void setup(int canvasScale = 1) { mCanvas.setup(canvasScale); }
+    void setup(int canvasScale = 1) {
+        mCanvas.setup(canvasScale);
+    }
 
     void update() {
         mContext.dt = std::fmin(ofGetLastFrameTime(), 1.0f / 30.0f);
@@ -71,12 +78,22 @@ public:
         mCanvas.present();
     }
 
-    void resize(int w, int h) { mCanvas.resize(w, h); }
-
     void keyPressed(int key) {
         if (key == 's' || key == 'S') {
             std::string filename = "../../screenshots/" + ofGetTimestampString() + ".png";
             ofSaveScreen(filename);
+        }
+    }
+
+    void keyReleased(int key) {
+    }
+
+    void mouseMoved(int x, int y) {
+    }
+
+    void mouseDragged(int x, int y, int button) {
+        for (std::shared_ptr<GameObject> &obj : mObjects) {
+            obj->mouseDragged(mContext, x, y, button);
         }
     }
 
@@ -86,10 +103,13 @@ public:
         }
     }
 
-    void mouseDragged(int x, int y, int button) {
-        for (std::shared_ptr<GameObject> &obj : mObjects) {
-            obj->mouseDragged(mContext, x, y, button);
-        }
+    void mouseReleased(int x, int y, int button) {
+    }
+
+    void mouseEntered(int x, int y) {
+    }
+
+    void mouseExited(int x, int y) {
     }
 
     void mouseScrolled(int x, int y, float scrollX, float scrollY) {
@@ -98,11 +118,23 @@ public:
         }
     }
 
+    void windowResized(int w, int h) {
+        mCanvas.resize(w, h);
+    }
+
+    void gotMessage(ofMessage msg) {
+    }
+
+    void dragEvent(ofDragInfo dragInfo) {
+    }
+
 private:
     Canvas mCanvas;
     GameContext mContext;
     std::vector<std::shared_ptr<GameObject>> mObjects;
     std::vector<std::shared_ptr<GameObject>> mObjectBuffer;
 };
+
+} // namespace Engine
 
 #endif

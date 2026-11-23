@@ -8,6 +8,8 @@
 #include "ofTexture.h"
 #include <cstring>
 
+namespace Engine {
+
 class Canvas {
 public:
     void setup(int scale) {
@@ -26,7 +28,9 @@ public:
         mTexture.setTextureMinMagFilter(GL_NEAREST, GL_NEAREST);
     }
 
-    void clear() { std::memset(mPixels.getData(), 0, mPixels.getTotalBytes()); }
+    void clear() {
+        std::memset(mPixels.getData(), 0, mPixels.getTotalBytes());
+    }
 
     void setPixel(int x, int y, const ofColor &col) {
         if (x >= 0 && x < width() && y >= 0 && y < height()) {
@@ -39,9 +43,17 @@ public:
         mTexture.draw(0, 0, ofGetWidth(), ofGetHeight());
     }
 
-    int width() const { return mPixels.getWidth(); }
-    int height() const { return mPixels.getHeight(); }
-    int scale() const { return mScale; }
+    int width() const {
+        return mPixels.getWidth();
+    }
+
+    int height() const {
+        return mPixels.getHeight();
+    }
+
+    int scale() const {
+        return mScale;
+    }
 
     void setScale(int scale) {
         mScale = std::max(1, scale);
@@ -53,5 +65,7 @@ private:
     ofTexture mTexture;
     int mScale = 1;
 };
+
+} // namespace Engine
 
 #endif

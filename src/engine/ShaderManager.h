@@ -7,6 +7,8 @@
 #include <string>
 #include <unordered_map>
 
+namespace Engine {
+
 class ShaderManager {
 public:
     static ShaderManager &getInstance() {
@@ -63,5 +65,7 @@ private:
     std::unordered_map<std::string, ofShader> mShaders;
     std::unordered_map<std::string, std::filesystem::file_time_type> mLastShaderTime;
 };
+
+} // namespace Engine
 
 #endif

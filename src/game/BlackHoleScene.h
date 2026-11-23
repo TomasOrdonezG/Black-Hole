@@ -14,19 +14,19 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 
-class BlackHoleScene : public GameObject {
+class BlackHoleScene : public Engine::GameObject {
 public:
     BlackHoleScene() {
         initQuad();
     }
 
-    void setup(GameContext &ctx) override {
+    void setup(Engine::GameContext &ctx) override {
         setupNoiseTexture();
         mConfig.setup();
     }
 
-    void draw(GameContext &ctx) override {
-        ofShader shader = ShaderManager::getInstance().watchShader("../../src/game/shaders/blackHole");
+    void draw(Engine::GameContext &ctx) override {
+        ofShader shader = Engine::ShaderManager::getInstance().watchShader("../../src/game/shaders/blackHole");
         shader.begin();
         setUniforms(ctx, shader);
         mQuad.draw();
@@ -40,7 +40,7 @@ public:
         mConfig.drawGui();
     }
 
-    void mouseDragged(GameContext &ctx, int x, int y, int button) override {
+    void mouseDragged(Engine::GameContext &ctx, int x, int y, int button) override {
         if (button == OF_MOUSE_BUTTON_LEFT) {
             float dx = ofGetMouseX() - ofGetPreviousMouseX();
             float dy = ofGetMouseY() - ofGetPreviousMouseY();
@@ -48,7 +48,7 @@ public:
         }
     }
 
-    void mouseScrolled(GameContext &ctx, int x, int y, float scrollX, float scrollY) override {
+    void mouseScrolled(Engine::GameContext &ctx, int x, int y, float scrollX, float scrollY) override {
         mConfig.camera.incrementDistance(-scrollY);
     }
 
@@ -92,7 +92,7 @@ private:
         glBindTexture(GL_TEXTURE_3D, 0);
     }
 
-    void setUniforms(GameContext &ctx, ofShader &shader) {
+    void setUniforms(Engine::GameContext &ctx, ofShader &shader) {
         // Game Context
         shader.setUniform2f("u_resolution", glm::vec2(static_cast<float>(ofGetWidth()), static_cast<float>(ofGetHeight())));
         shader.setUniform1f("u_time", ctx.time);

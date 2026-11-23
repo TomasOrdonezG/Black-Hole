@@ -5,8 +5,8 @@
 #include "BlackHoleScene.h"
 #include <memory>
 
-class Setup : public GameObject {
-    void setup(GameContext &ctx) override {
+class Setup : public Engine::GameObject {
+    void setup(Engine::GameContext &ctx) override {
         ctx.engine.addObject(std::make_shared<BlackHoleScene>());
         kill(ctx);
     }

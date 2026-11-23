@@ -26,7 +26,7 @@ public:
     void gotMessage(ofMessage msg);
 
 private:
-    GameEngine mEngine;
+    Engine::GameEngine mEngine;
 };
 
 #endif
