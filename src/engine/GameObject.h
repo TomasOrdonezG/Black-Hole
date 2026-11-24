@@ -40,7 +40,7 @@ public:
     }
     // virtual void mouseReleased(GameContext &ctx, int x, int y, int button);
     // virtual void mouseEntered(GameContext &ctx, int x, int y);
-    // virtual void mouseExited(GameContext &ctx, int x, int y);
+    // virtual void mouseExited(GameContext &ctx, int x, int y){}
     virtual void mouseScrolled(GameContext &ctx, int x, int y, float scrollX, float scrollY) {
     }
 

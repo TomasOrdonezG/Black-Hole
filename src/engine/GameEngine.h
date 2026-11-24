@@ -2,9 +2,11 @@
 #define GAME_ENGINE_H
 
 #include "Canvas.h"
+#include "DebugSettings.h"
 #include "EngineContext.h"
 #include "GameContext.h"
 #include "GameObject.h"
+#include "InputManager.h"
 #include "ofAppRunner.h"
 #include "ofGraphics.h"
 #include "ofUtils.h"
@@ -15,8 +17,9 @@ namespace Engine {
 
 class GameEngine : public EngineContext {
 public:
-    GameEngine() : mContext(*this, mCanvas) {
+    GameEngine() : mContext(*this, mCanvas, mInputManager) {
     }
+
     GameEngine(const GameEngine &) = delete;
     GameEngine &operator=(const GameEngine &) = delete;
     GameEngine(GameEngine &&) = delete;
@@ -32,35 +35,11 @@ public:
     }
 
     void update() {
-        mContext.dt = std::fmin(ofGetLastFrameTime(), 1.0f / 30.0f);
-        mContext.time = ofGetElapsedTimef();
-
-        std::vector<std::shared_ptr<GameObject>> tmpObjects;
-        tmpObjects.reserve(mObjects.size() + mObjectBuffer.size());
-
-        // Clean up dead objects
-        for (std::shared_ptr<GameObject> &obj : mObjects) {
-            if (obj->isAlive()) {
-                tmpObjects.push_back(std::move(obj));
-            }
+        mDebugSettings.update(mContext);
+        if (mDebugSettings.shouldRunFrame()) {
+            runFrame();
         }
-
-        // Add any new objects added since last frame
-        std::vector<std::shared_ptr<GameObject>> pending;
-        pending.swap(mObjectBuffer);
-        for (std::shared_ptr<GameObject> &obj : pending) {
-            obj->setup(mContext);
-            if (obj->isAlive()) {
-                tmpObjects.push_back(std::move(obj));
-            }
-        }
-
-        tmpObjects.swap(mObjects);
-
-        // Update all objects
-        for (const std::shared_ptr<GameObject> &obj : mObjects) {
-            obj->update(mContext);
-        }
+        mInputManager.endFrame();
     }
 
     void draw() {
@@ -79,6 +58,8 @@ public:
     }
 
     void keyPressed(int key) {
+        mInputManager.onKeyPressed(key);
+
         if (key == 's' || key == 'S') {
             std::string filename = "../../screenshots/" + ofGetTimestampString() + ".png";
             ofSaveScreen(filename);
@@ -86,6 +67,7 @@ public:
     }
 
     void keyReleased(int key) {
+        mInputManager.onKeyReleased(key);
     }
 
     void mouseMoved(int x, int y) {
@@ -130,9 +112,43 @@ public:
 
 private:
     Canvas mCanvas;
+    InputManager mInputManager;
     GameContext mContext;
+    DebugSettings mDebugSettings;
     std::vector<std::shared_ptr<GameObject>> mObjects;
     std::vector<std::shared_ptr<GameObject>> mObjectBuffer;
+
+    void runFrame() {
+        mContext.dt = std::fmin(ofGetLastFrameTime(), 1.0f / 30.0f);
+        mContext.time = ofGetElapsedTimef();
+
+        std::vector<std::shared_ptr<GameObject>> tmpObjects;
+        tmpObjects.reserve(mObjects.size() + mObjectBuffer.size());
+
+        // Clean up dead objects
+        for (std::shared_ptr<GameObject> &obj : mObjects) {
+            if (obj->isAlive()) {
+                tmpObjects.push_back(std::move(obj));
+            }
+        }
+
+        // Add any new objects added since last frame
+        std::vector<std::shared_ptr<GameObject>> pending;
+        pending.swap(mObjectBuffer);
+        for (std::shared_ptr<GameObject> &obj : pending) {
+            obj->setup(mContext);
+            if (obj->isAlive()) {
+                tmpObjects.push_back(std::move(obj));
+            }
+        }
+
+        tmpObjects.swap(mObjects);
+
+        // Update all objects
+        for (const std::shared_ptr<GameObject> &obj : mObjects) {
+            obj->update(mContext);
+        }
+    }
 };
 
 } // namespace Engine
